@@ -1,0 +1,18 @@
+#include <Wire.h>
+#include <Periph.h>
+
+I2CConnection connection(Wire, 0x60);
+MCP4728Minimal dac(connection);
+
+void setup() {
+    Serial.begin(115200);
+    Wire.begin();
+}
+
+void loop() {
+    dac.set_voltage(0, 0.5f);
+    dac.set_raw(1, 2048);
+    float fractions[4] = {0.0f, 0.25f, 0.5f, 1.0f};
+    dac.set_all(fractions);
+    delay(1000);
+}

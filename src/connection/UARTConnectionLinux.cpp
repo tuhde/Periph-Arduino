@@ -40,8 +40,8 @@ static speed_t baud_to_speed(int baud) {
 UARTConnectionLinux::UARTConnectionLinux(const char* path,
                                          int baudrate, int data_bits, int stop_bits,
                                          char parity, int timeout_ms, int de_pin_num,
-                                         InputPin* intPin, OutputPin* enPin)
-    : Connection(intPin, enPin), _fd(-1), _de_pin_num(de_pin_num), _rs485_kernel(false)
+                                         InputPin* intPin, OutputPin* enPin, bool enActiveHigh)
+    : Connection(intPin, enPin, enActiveHigh), _fd(-1), _de_pin_num(de_pin_num), _rs485_kernel(false)
 {
     _fd = open(path, O_RDWR | O_NOCTTY);
     if (_fd < 0)
@@ -116,6 +116,7 @@ UARTConnectionLinux::~UARTConnectionLinux() {
 }
 
 void UARTConnectionLinux::_de_set(int value) {
+    (void)value;
 #ifdef HAVE_LIBGPIOD
     if (_gpiod_line)
         gpiod_line_set_value(static_cast<struct gpiod_line*>(_gpiod_line), value);

@@ -11,6 +11,9 @@ static inline void delay(unsigned long ms) { k_sleep(K_MSEC(ms)); }
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 static inline void delay(unsigned long ms) { vTaskDelay(pdMS_TO_TICKS(ms)); }
+#elif __has_include(<stm32f4xx_hal.h>)
+#include <stm32f4xx_hal.h>
+static inline void delay(unsigned long ms) { HAL_Delay(ms); }
 #elif __has_include(<pico/time.h>)
 #include <pico/time.h>
 static inline void delay(unsigned long ms) { sleep_ms(ms); }
@@ -19,15 +22,14 @@ static inline void delay(unsigned long ms) { sleep_ms(ms); }
 static inline void delay(unsigned long ms) { usleep(ms * 1000UL); }
 #endif
 
-BMP085Minimal::BMP085Minimal(Connection& connection)
+BMP085Minimal::BMP085Minimal(RegisterConnection& connection)
     : _connection(connection) {
     _read_calibration();
 }
 
 void BMP085Minimal::_read_calibration() {
     uint8_t buf[22];
-    uint8_t reg = REG_CAL_START;
-    _connection.write_read(&reg, 1, buf, 22);
+    _connection.read(REG_CAL_START, buf, 22);
 
     _ac1 = (int16_t)((buf[0] << 8) | buf[1]);
     _ac2 = (int16_t)((buf[2] << 8) | buf[3]);
@@ -41,32 +43,30 @@ void BMP085Minimal::_read_calibration() {
     _mc  = (int16_t)((buf[18] << 8) | buf[19]);
     _md  = (int16_t)((buf[20] << 8) | buf[21]);
 
-    if (_ac1 == 0 || _ac1 == 0xFFFF ||
-        _ac2 == 0 || _ac2 == 0xFFFF ||
-        _ac3 == 0 || _ac3 == 0xFFFF ||
+    if (_ac1 == 0 || (uint16_t)_ac1 == 0xFFFF ||
+        _ac2 == 0 || (uint16_t)_ac2 == 0xFFFF ||
+        _ac3 == 0 || (uint16_t)_ac3 == 0xFFFF ||
         _ac4 == 0 || _ac4 == 0xFFFF ||
         _ac5 == 0 || _ac5 == 0xFFFF ||
         _ac6 == 0 || _ac6 == 0xFFFF ||
-        _b1  == 0 || _b1  == 0xFFFF ||
-        _b2  == 0 || _b2  == 0xFFFF ||
-        _mb  == 0 || _mb  == 0xFFFF ||
-        _mc  == 0 || _mc  == 0xFFFF ||
-        _md  == 0 || _md  == 0xFFFF) {
+        _b1  == 0 || (uint16_t)_b1 == 0xFFFF ||
+        _b2  == 0 || (uint16_t)_b2 == 0xFFFF ||
+        _mb  == 0 || (uint16_t)_mb == 0xFFFF ||
+        _mc  == 0 || (uint16_t)_mc == 0xFFFF ||
+        _md  == 0 || (uint16_t)_md == 0xFFFF) {
         abort();
     }
 }
 
 void BMP085Minimal::_write_reg(uint8_t reg, uint8_t value) {
-    uint8_t buf[2] = { reg, value };
-    _connection.write(buf, 2);
+    _connection.write(reg, &value, 1);
 }
 
 uint16_t BMP085Minimal::_read_raw_temp() {
     _write_reg(REG_CTRL_MEAS, CMD_TEMP);
     delay(CONV_TIME_TEMP * 1000);
     uint8_t buf[2];
-    uint8_t reg = REG_OUT_MSB;
-    _connection.write_read(&reg, 1, buf, 2);
+    _connection.read(REG_OUT_MSB, buf, 2);
     return ((uint16_t)buf[0] << 8) | buf[1];
 }
 
@@ -80,8 +80,7 @@ uint32_t BMP085Minimal::_read_raw_pressure() {
     _write_reg(REG_CTRL_MEAS, cmd);
     delay(conv_time * 1000);
     uint8_t buf[3];
-    uint8_t reg = REG_OUT_MSB;
-    _connection.write_read(&reg, 1, buf, 3);
+    _connection.read(REG_OUT_MSB, buf, 3);
     uint32_t up = (((uint32_t)buf[0] << 16) | ((uint32_t)buf[1] << 8) | buf[2]) >> (8 - _oss);
     return up;
 }
@@ -143,7 +142,7 @@ float BMP085Minimal::pressure() {
 
 // BMP085Full
 
-BMP085Full::BMP085Full(Connection& connection, uint8_t oss)
+BMP085Full::BMP085Full(RegisterConnection& connection, uint8_t oss)
     : BMP085Minimal(connection) {
     _oss = oss & 0x03;
 }
@@ -167,9 +166,8 @@ float BMP085Full::sea_level_pressure(float altitude_m) {
 }
 
 uint8_t BMP085Full::chip_id() {
-    uint8_t reg = REG_ID;
     uint8_t buf[1];
-    _connection.write_read(&reg, 1, buf, 1);
+    _connection.read(REG_ID, buf, 1);
     return buf[0];
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 #include <hardware/i2c.h>
-#include "Connection.h"
+#include "RegisterConnection.h"
 
 /** @brief I²C connection for the Raspberry Pi Pico SDK (wraps `hardware_i2c`).
  *
@@ -22,11 +22,13 @@
  * @param addr   7-bit device address.
  * @param intPin Optional InputPin for INT-line delivery.
  * @param enPin  Optional OutputPin for hardware enable/power control.
+ * @param enActiveHigh True if the EN pin is active-high (default); false for active-low.
  */
-class I2CConnectionPicoSDK : public Connection {
+class I2CConnectionPicoSDK : public RegisterConnection {
 public:
-    I2CConnectionPicoSDK(i2c_inst_t* i2c, uint8_t addr, InputPin* intPin = nullptr, OutputPin* enPin = nullptr)
-        : Connection(intPin, enPin), _i2c(i2c), _addr(addr) {}
+    I2CConnectionPicoSDK(i2c_inst_t* i2c, uint8_t addr, InputPin* intPin = nullptr, OutputPin* enPin = nullptr,
+                         uint8_t regBytes = 1, bool enActiveHigh = true)
+        : RegisterConnection(intPin, enPin, regBytes, enActiveHigh), _i2c(i2c), _addr(addr) {}
 
 protected:
     /** @brief Send bytes to the device.
@@ -34,7 +36,7 @@ protected:
      *  @param len  Number of bytes to send.
      */
     void _write(const uint8_t* data, size_t len) override {
-        i2c_write_blocking(_i2c, _addr, data, len, false);
+        _setOk(i2c_write_blocking(_i2c, _addr, data, len, false) == static_cast<int>(len));
     }
 
     /** @brief Read bytes from the device.
@@ -42,7 +44,7 @@ protected:
      *  @param len Number of bytes to read.
      */
     void _read(uint8_t* buf, size_t len) override {
-        i2c_read_blocking(_i2c, _addr, buf, len, false);
+        _setOk(i2c_read_blocking(_i2c, _addr, buf, len, false) == static_cast<int>(len));
     }
 
     /** @brief Write then read with a repeated start between phases.
@@ -58,8 +60,9 @@ protected:
      */
     void _write_read(const uint8_t* data, size_t data_len,
                      uint8_t* buf, size_t buf_len) override {
-        i2c_write_blocking(_i2c, _addr, data, data_len, true);
-        i2c_read_blocking(_i2c, _addr, buf, buf_len, false);
+        int w = i2c_write_blocking(_i2c, _addr, data, data_len, true);
+        int r = i2c_read_blocking(_i2c, _addr, buf, buf_len, false);
+        _setOk(w == static_cast<int>(data_len) && r == static_cast<int>(buf_len));
     }
 
     /** @brief Underlying I²C controller pointer, exposed so derived

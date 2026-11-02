@@ -14,7 +14,7 @@ static unsigned long _now_ms_linux() {
 #elif defined(ARDUINO)
 #include <Arduino.h>
 #define _millis_impl() millis()
-#elif defined(__ZEPHYR_SUPERVISOR__)
+#elif defined(__ZEPHYR__)
 #include <zephyr/kernel.h>
 #define _millis_impl() ((unsigned long)k_uptime_get())
 #elif defined(ESP_PLATFORM)
@@ -23,6 +23,9 @@ static unsigned long _now_ms_linux() {
 #elif defined(PICO_SDK_VERSION_MAJOR)
 #include "pico/stdlib.h"
 #define _millis_impl() ((unsigned long)(to_ms_since_boot(get_absolute_time())))
+#elif __has_include(<stm32f4xx_hal.h>)
+#include <stm32f4xx_hal.h>
+#define _millis_impl() ((unsigned long)HAL_GetTick())
 #else
 #include <chrono>
 static unsigned long _now_ms_host() {

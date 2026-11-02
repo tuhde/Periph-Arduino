@@ -33,7 +33,8 @@
  * Generic over any SiPo connection class that exposes
  * @c write(const uint8_t*, size_t), @c clear(), and @c set_output_enable(bool)
  * — covers @c SiPoConnection (Arduino), @c SiPoConnectionLinux,
- * @c SiPoConnectionZephyr, @c SiPoConnectionESPIDF, @c SiPoConnectionPicoSDK.
+ * @c SiPoConnectionZephyr, @c SiPoConnectionESPIDF, @c SiPoConnectionPicoSDK,
+ * @c SiPoConnectionSTM32Cube.
  *
  * @tparam CONN  SiPo connection class (must have write / clear / set_output_enable).
  *
@@ -90,10 +91,13 @@ public:
     /** @brief Construct and initialise the TPIC6B595.
      *
      *  Zeroes every shadow byte, pulses SRCLR if the SiPo connection has it
-     *  wired (no-op otherwise — the constructor ignores the result of
-     *  @c clear() so missing SRCLR on the connection is not fatal), then
-     *  writes the all-zero reversed cascade so every output starts OFF
-     *  regardless of the chip's undefined power-on storage-register content.
+     *  wired (no-op otherwise — missing SRCLR on the connection is not
+     *  fatal, whether the connection reports that via a bool/int return
+     *  (Arduino/Zephyr/ESP-IDF/Pico SDK/STM32Cube) or by throwing (Linux, whose
+     *  @c clear() is documented to throw @c std::runtime_error when SRCLR
+     *  was not configured)), then writes the all-zero reversed cascade so
+     *  every output starts OFF regardless of the chip's undefined power-on
+     *  storage-register content.
      *
      *  @param connection Configured SiPo connection.
      *  @param num_devices Number of cascaded TPIC6B595s on the wire; default 1.
@@ -102,7 +106,11 @@ public:
         : _connection(connection), _num_devices(num_devices)
     {
         for (uint8_t i = 0; i < num_devices; ++i) _shadow[i] = 0;
-        (void)_connection.clear();
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+        try { _connection.clear(); } catch (...) {}
+#else
+        _connection.clear();
+#endif
         _flush();
     }
 

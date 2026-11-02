@@ -15,6 +15,9 @@ static inline void delay(unsigned long ms) { k_sleep(K_MSEC(ms)); }
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 static inline void delay(unsigned long ms) { vTaskDelay(pdMS_TO_TICKS(ms)); }
+#elif __has_include(<stm32f4xx_hal.h>)
+#include <stm32f4xx_hal.h>
+static inline void delay(unsigned long ms) { HAL_Delay(ms); }
 #elif __has_include(<pico/time.h>)
 #include <pico/time.h>
 static inline void delay(unsigned long ms) { sleep_ms(ms); }
@@ -69,19 +72,19 @@ void ADXL362Minimal::init() {
 }
 
 void ADXL362Minimal::_write_reg(uint8_t reg, uint8_t value) {
-    uint8_t buf[3] = { CMD_WRITE_REG, reg & 0x3F, value };
+    uint8_t buf[3] = { CMD_WRITE_REG, static_cast<uint8_t>(reg & 0x3F), value };
     _connection.write(buf, 3);
 }
 
 uint8_t ADXL362Minimal::_read_reg(uint8_t reg) {
-    uint8_t cmd[2] = { CMD_READ_REG, reg & 0x3F };
+    uint8_t cmd[2] = { CMD_READ_REG, static_cast<uint8_t>(reg & 0x3F) };
     uint8_t val = 0;
     _connection.write_read(cmd, 2, &val, 1);
     return val;
 }
 
 void ADXL362Minimal::_read_burst(uint8_t reg, uint8_t* buf, uint8_t len) {
-    uint8_t cmd[2] = { CMD_READ_REG, reg & 0x3F };
+    uint8_t cmd[2] = { CMD_READ_REG, static_cast<uint8_t>(reg & 0x3F) };
     _connection.write_read(cmd, 2, buf, len);
 }
 
@@ -285,9 +288,9 @@ void ADXL362Full::set_activity_threshold(float threshold_g, bool referenced) {
     float sens = _sensitivity();
     int32_t raw = (int32_t)lroundf(threshold_g / sens);
     if (raw < 0) raw = 0;
-    if (raw > 0x3FF) raw = 0x3FF;
+    if (raw > 0x7FF) raw = 0x7FF;
     _write_reg(REG_THRESH_ACT_L, (uint8_t)(raw & 0xFF));
-    _write_reg(REG_THRESH_ACT_H, (uint8_t)((raw >> 8) & 0x03));
+    _write_reg(REG_THRESH_ACT_H, (uint8_t)((raw >> 8) & 0x07));
     uint8_t aic = _read_reg(REG_ACT_INACT_CTL);
     if (referenced) aic |= 0x02; else aic &= ~0x02;
     _write_reg(REG_ACT_INACT_CTL, aic);
@@ -301,9 +304,9 @@ void ADXL362Full::set_inactivity_threshold(float threshold_g, bool referenced) {
     float sens = _sensitivity();
     int32_t raw = (int32_t)lroundf(threshold_g / sens);
     if (raw < 0) raw = 0;
-    if (raw > 0x3FF) raw = 0x3FF;
+    if (raw > 0x7FF) raw = 0x7FF;
     _write_reg(REG_THRESH_INACT_L, (uint8_t)(raw & 0xFF));
-    _write_reg(REG_THRESH_INACT_H, (uint8_t)((raw >> 8) & 0x03));
+    _write_reg(REG_THRESH_INACT_H, (uint8_t)((raw >> 8) & 0x07));
     uint8_t aic = _read_reg(REG_ACT_INACT_CTL);
     if (referenced) aic |= 0x08; else aic &= ~0x08;
     _write_reg(REG_ACT_INACT_CTL, aic);

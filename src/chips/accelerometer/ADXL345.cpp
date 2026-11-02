@@ -11,6 +11,9 @@ static inline void delay(unsigned long ms) { k_sleep(K_MSEC(ms)); }
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 static inline void delay(unsigned long ms) { vTaskDelay(pdMS_TO_TICKS(ms)); }
+#elif __has_include(<stm32f4xx_hal.h>)
+#include <stm32f4xx_hal.h>
+static inline void delay(unsigned long ms) { HAL_Delay(ms); }
 #elif __has_include(<pico/time.h>)
 #include <pico/time.h>
 static inline void delay(unsigned long ms) { sleep_ms(ms); }
@@ -36,8 +39,8 @@ constexpr RateCode RATE_CODES[] = {
 };
 }  // namespace
 
-ADXL345Minimal::ADXL345Minimal(Connection& connection, bool spi)
-    : _connection(connection), _spi(spi) {
+ADXL345Minimal::ADXL345Minimal(RegisterConnection& connection)
+    : _connection(connection) {
     _write_reg(REG_DATA_FORMAT, DATA_FORMAT_DEFAULT);
     _write_reg(REG_BW_RATE, BW_RATE_DEFAULT);
     _write_reg(REG_POWER_CTL, POWER_CTL_DEFAULT);
@@ -56,31 +59,12 @@ ADXL345Minimal::ADXL345Minimal(Connection& connection, bool spi)
     delay(11);
 }
 
-uint8_t ADXL345Minimal::_cmd_byte(uint8_t reg, bool read, bool multi) const {
-    uint8_t addr = reg & 0x3F;
-    if (multi)  addr |= 0x40;
-    if (read)   addr |= 0x80;
-    return addr;
-}
-
 void ADXL345Minimal::_write_reg(uint8_t reg, uint8_t value) {
-    if (_spi) {
-        uint8_t buf[2] = { _cmd_byte(reg, false, false), value };
-        _connection.write(buf, 2);
-    } else {
-        uint8_t buf[2] = { reg, value };
-        _connection.write(buf, 2);
-    }
+    _connection.write(reg, &value, 1);
 }
 
 void ADXL345Minimal::_read_reg(uint8_t reg, uint8_t* buf, size_t len) {
-    if (_spi) {
-        uint8_t cmd = _cmd_byte(reg, true, len > 1);
-        _connection.write_read(&cmd, 1, buf, len);
-    } else {
-        uint8_t addr = reg;
-        _connection.write_read(&addr, 1, buf, len);
-    }
+    _connection.read(reg, buf, len);
 }
 
 void ADXL345Minimal::_delay_ms(uint32_t ms) {
@@ -88,8 +72,7 @@ void ADXL345Minimal::_delay_ms(uint32_t ms) {
 }
 
 int16_t ADXL345Minimal::_decode_signed(const uint8_t* p) {
-    int16_t v = (int16_t)((uint16_t)p[0] | ((uint16_t)p[1] << 8));
-    return v;
+    return (int16_t)toSigned((uint32_t)p[0] | ((uint32_t)p[1] << 8), 16);
 }
 
 void ADXL345Minimal::read(float& x, float& y, float& z) {
@@ -105,8 +88,8 @@ void ADXL345Minimal::read(float& x, float& y, float& z) {
 
 // ADXL345Full
 
-ADXL345Full::ADXL345Full(Connection& connection, bool spi)
-    : ADXL345Minimal(connection, spi) {}
+ADXL345Full::ADXL345Full(RegisterConnection& connection)
+    : ADXL345Minimal(connection) {}
 
 void ADXL345Full::set_range(uint8_t range_g) {
     uint8_t code = 0;

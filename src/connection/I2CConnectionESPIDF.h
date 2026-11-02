@@ -1,6 +1,6 @@
 #pragma once
 #include <driver/i2c_master.h>
-#include "Connection.h"
+#include "RegisterConnection.h"
 
 /** @brief I²C connection for ESP-IDF (driver-ng `i2c_master.h`).
  *
@@ -28,11 +28,13 @@
  *               `i2c_master_bus_add_device()`.
  * @param intPin Optional InputPin for INT-line delivery.
  * @param enPin  Optional OutputPin for hardware enable/power control.
+ * @param enActiveHigh True if the EN pin is active-high (default); false for active-low.
  */
-class I2CConnectionESPIDF : public Connection {
+class I2CConnectionESPIDF : public RegisterConnection {
 public:
-    I2CConnectionESPIDF(i2c_master_dev_handle_t dev, InputPin* intPin = nullptr, OutputPin* enPin = nullptr)
-        : Connection(intPin, enPin), _dev(dev) {}
+    I2CConnectionESPIDF(i2c_master_dev_handle_t dev, InputPin* intPin = nullptr, OutputPin* enPin = nullptr,
+                        uint8_t regBytes = 1, bool enActiveHigh = true)
+        : RegisterConnection(intPin, enPin, regBytes, enActiveHigh), _dev(dev) {}
 
 protected:
     /** @brief Send bytes to the device via `i2c_master_transmit`.
@@ -40,7 +42,7 @@ protected:
      *  @param len  Number of bytes to send.
      */
     void _write(const uint8_t* data, size_t len) override {
-        i2c_master_transmit(_dev, data, len, -1);
+        _setOk(i2c_master_transmit(_dev, data, len, -1) == ESP_OK);
     }
 
     /** @brief Read bytes from the device via `i2c_master_receive`.
@@ -48,7 +50,7 @@ protected:
      *  @param len Number of bytes to read.
      */
     void _read(uint8_t* buf, size_t len) override {
-        i2c_master_receive(_dev, buf, len, -1);
+        _setOk(i2c_master_receive(_dev, buf, len, -1) == ESP_OK);
     }
 
     /** @brief Write then read with a repeated start via `i2c_master_transmit_receive`.
@@ -64,7 +66,7 @@ protected:
      */
     void _write_read(const uint8_t* data, size_t data_len,
                      uint8_t* buf, size_t buf_len) override {
-        i2c_master_transmit_receive(_dev, data, data_len, buf, buf_len, -1);
+        _setOk(i2c_master_transmit_receive(_dev, data, data_len, buf, buf_len, -1) == ESP_OK);
     }
 
     /** @brief Underlying I²C device handle, exposed so derived connections

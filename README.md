@@ -40,6 +40,7 @@ Each chip exposes two classes:
 
 | Chip | Category | Header |
 |------|----------|--------|
+| 23X1024 | Memory | `chips/memory/23X1024.h` |
 | 24AA02UID | Memory | `chips/memory/24AA02UID.h` |
 | AD7705 | ADC/DAC | `chips/adc_dac/AD7705.h` |
 | AD7706 | ADC/DAC | `chips/adc_dac/AD7706.h` |
@@ -51,6 +52,7 @@ Each chip exposes two classes:
 | Apds9930 | Light sensor | `chips/light/Apds9930.h` |
 | APDS9960 | Light sensor | `chips/light/APDS9960.h` |
 | AS5600 | Magnetometer | `chips/magnetometer/AS5600.h` |
+| BMA150 | Accelerometer | `chips/accelerometer/BMA150.h` |
 | BME280 | Environmental sensor | `chips/environmental/BME280.h` |
 | BME680 | Environmental sensor | `chips/environmental/BME680.h` |
 | BMP085 | Pressure sensor | `chips/pressure/BMP085.h` |
@@ -66,6 +68,7 @@ Each chip exposes two classes:
 | HX710A | ADC/DAC | `chips/adc_dac/HX710A.h` |
 | HX710B | ADC/DAC | `chips/adc_dac/HX710B.h` |
 | HX711 | ADC/DAC | `chips/adc_dac/HX711.h` |
+| HY3131 | ADC/DAC | `chips/adc_dac/HY3131.h` |
 | INA219 | Power monitor | `chips/power/INA219.h` |
 | INA226 | Power monitor | `chips/power/INA226.h` |
 | INA3221 | Power monitor | `chips/power/INA3221.h` |
@@ -84,6 +87,7 @@ Each chip exposes two classes:
 | MPU6050 | IMU | `chips/imu/MPU6050.h` |
 | MPU9250 | IMU | `chips/imu/MPU9250.h` |
 | MPU9255 | IMU | `chips/imu/MPU9255.h` |
+| MX25L12845E | Memory | `chips/memory/MX25L12845E.h` |
 | NEO6 | GNSS/GPS | `chips/gnss/NEO6.h` |
 | NeoPixelRGBBase | LED driver | `chips/led/NeoPixelRGBBase.h` |
 | NeoPixelRGBWBase | LED driver | `chips/led/NeoPixelRGBWBase.h` |
@@ -94,8 +98,10 @@ Each chip exposes two classes:
 | PCF8591 | ADC/DAC | `chips/adc_dac/PCF8591.h` |
 | RDA5807M | Comms | `chips/comms/RDA5807M.h` |
 | RFM9x | Comms | `chips/comms/RFM9x.h` |
+| SD_SPI | Memory | `chips/memory/SD_SPI.h` |
 | SK6812RGBW | LED driver | `chips/led/SK6812RGBW.h` |
 | TMP117 | Temperature sensor | `chips/temperature/TMP117.h` |
+| UC1611s | Display driver | `chips/display/UC1611s.h` |
 | VL53L0X | Time-of-flight | `chips/tof/VL53L0X.h` |
 | VL53L1X | Time-of-flight | `chips/tof/VL53L1X.h` |
 | WS2812B | LED driver | `chips/led/WS2812B.h` |
@@ -103,7 +109,7 @@ Each chip exposes two classes:
 
 ## Examples
 
-Each chip ships three examples under `examples/`: `<Chip>_Minimal`, `<Chip>_Complete`, and `<Chip>_Demo`.
+Each chip ships three examples under `examples/<category>/`: `<Chip>_Minimal`, `<Chip>_Complete`, and `<Chip>_Demo` (in the Arduino IDE: File > Examples > Periph > <category>).
 
 ## Links
 
